@@ -1,51 +1,77 @@
 import React, { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
-
+import storage from '@react-native-firebase/storage';
 import { Button } from '../../components/Button';
 import { Header } from '../../components/Header';
 import { Photo } from '../../components/Photo';
 
 import { Container, Content, Progress, Transferred } from './styles';
+import { Alert } from 'react-native';
 
 export function Upload() {
-  const [image, setImage] = useState('');
+   const [image, setImage] = useState('');
+   const [bytesTransferred,setBytesTransferred] = useState('');
+   const [progress, setProgress] = useState('0');
 
-  async function handlePickImage() {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+   async function handlePickImage() {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (status == 'granted') {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        aspect: [4, 4],
-        quality: 1,
+      if (status == 'granted') {
+         const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            aspect: [4, 4],
+            quality: 1,
+         });
+
+         if (!result.cancelled) {
+            setImage(result.uri);
+         }
+      }
+   };
+
+   async function handleUpload() {
+      const fileName = new Date().getTime(); //nome do arquivo
+      const reference = storage().ref(`/images/${fileName}.png`); //aonde vai ser salvo
+
+      const uploadTask = reference.putFile(image); //envia o arquivo
+      
+      uploadTask.on('state_changed',taskSnapshot =>{//acompanha o upload
+         const percent = ((taskSnapshot.bytesTransferred / taskSnapshot.totalBytes)*100).toFixed(0); //pega a %
+         setProgress(percent);   //envia a %
+
+         setBytesTransferred(`${taskSnapshot.bytesTransferred} transferido de ${taskSnapshot.totalBytes}`);
       });
 
-      if (!result.cancelled) {
-        setImage(result.uri);
-      }
-    }
-  };
+      uploadTask.then(()=>Alert.alert('Upload Concluido!'))
 
-  return (
-    <Container>
-      <Header title="Lista de compras" />
+      /*
+      reference
+      .putFile(image)
+      .then(()=> Alert.alert('Upload Concluido!'))
+      .catch((error)=> console.error(error));
+      */
+   }
 
-      <Content>
-        <Photo uri={image} onPress={handlePickImage} />
+   return (
+      <Container>
+         <Header title="Upload de Fotos" />
 
-        <Button
-          title="Fazer upload"
-          onPress={() => { }}
-        />
+         <Content>
+            <Photo uri={image} onPress={handlePickImage} />
 
-        <Progress>
-          0%
-        </Progress>
+            <Button
+               title="Fazer upload"
+               onPress={handleUpload}
+            />
 
-        <Transferred>
-          0 de 100 bytes transferido
-        </Transferred>
-      </Content>
-    </Container>
-  );
+            <Progress>
+               {progress}%
+            </Progress>
+
+            <Transferred>
+               {bytesTransferred}
+            </Transferred>
+         </Content>
+      </Container>
+   );
 }
