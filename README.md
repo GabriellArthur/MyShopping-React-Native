@@ -1,4 +1,5 @@
 # MyShopping
+<img alt="Ignite" src="https://i.imgur.com/eCVyxxy.png">
 
 ## 📚 Informações sobre o projeto
 
